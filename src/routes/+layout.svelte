@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import favicon from '$lib/assets/favicon.svg';
 	import MusicRoom from '$lib/components/MusicRoom.svelte';
 	import LogoYokoKanno from '$lib/components/LogoYokoKanno.svelte';
@@ -6,6 +7,23 @@
 	import { setInstrumentFocus } from '$lib/stores/instrumentFocus';
 
 	let { children } = $props();
+	let headerHidden = $state(false);
+	let lastScrollY = 0;
+	const scrollThreshold = 120;
+
+	onMount(() => {
+		const handleScroll = () => {
+			const y = window.scrollY;
+			if (y > lastScrollY && y > scrollThreshold) {
+				headerHidden = true;
+			} else if (y < lastScrollY) {
+				headerHidden = false;
+			}
+			lastScrollY = y;
+		};
+		window.addEventListener('scroll', handleScroll, { passive: true });
+		return () => window.removeEventListener('scroll', handleScroll);
+	});
 
 	$effect(() => {
 		const path = $page.url.pathname;
@@ -43,7 +61,7 @@
 	<MusicRoom />
 
 	<div class="overlay">
-		<header class="top-bar">
+		<header class="top-bar" class:hidden={headerHidden}>
 			<a href="/" class="logo-wrap" aria-label="Yoko Kanno home">
 				<LogoYokoKanno />
 			</a>
@@ -116,17 +134,23 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 1.2rem 3.5rem;
-		backdrop-filter: blur(14px);
+		padding: 0.6rem 2.5rem;
 		background: linear-gradient(
 			to bottom,
-			rgba(9, 6, 5, 0.96),
-			rgba(9, 6, 5, 0.88),
+			rgba(9, 6, 5, 0.65),
+			rgba(9, 6, 5, 0.5),
 			transparent
 		);
-		border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+		border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 		pointer-events: auto;
 		z-index: 10;
+		transition: transform 0.3s ease-out;
+		transform: translateZ(0);
+		backface-visibility: hidden;
+	}
+
+	.top-bar.hidden {
+		transform: translateY(-100%) translateZ(0);
 	}
 
 	.logo-wrap {
@@ -139,8 +163,8 @@
 	.main-nav {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 1.2rem;
-		font-size: 0.9rem;
+		gap: 0.9rem;
+		font-size: 0.8rem;
 		text-transform: uppercase;
 		letter-spacing: 0.09em;
 	}
@@ -171,24 +195,24 @@
 		display: flex;
 		align-items: flex-start;
 		justify-content: center;
-		padding: 7rem 3.5rem 3.5rem;
+		padding: 4.5rem 2.5rem 2.5rem;
 		pointer-events: auto;
 	}
 
 	@media (max-width: 900px) {
 		.top-bar {
-			padding-inline: 1.4rem;
+			padding: 0.5rem 1.2rem;
 			flex-direction: column;
 			align-items: flex-start;
-			gap: 0.75rem;
+			gap: 0.5rem;
 		}
 
 		.page-shell {
-			padding: 6.5rem 1.4rem 2.5rem;
+			padding: 4rem 1.2rem 2rem;
 		}
 
 		.main-nav {
-			row-gap: 0.4rem;
+			row-gap: 0.35rem;
 		}
 	}
 </style>

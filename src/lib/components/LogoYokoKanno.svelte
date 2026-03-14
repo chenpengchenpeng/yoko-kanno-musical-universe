@@ -29,10 +29,9 @@
 </script>
 
 <svg
+	class="logo"
 	bind:this={logoEl}
 	xmlns="http://www.w3.org/2000/svg"
-	width="345"
-	height="105"
 	viewBox="-29 -66 345 105"
 >
 	<defs>
@@ -106,7 +105,13 @@
 </svg>
 
 <style>
-	svg path {
+	.logo {
+		height: 4.2rem;
+		width: auto;
+		display: block;
+	}
+
+	.logo path {
 		fill: none;
 		stroke: url(#logoStrokeGradient);
 		stroke-width: 2;
