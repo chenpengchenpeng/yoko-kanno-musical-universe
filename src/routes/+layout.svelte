@@ -17,12 +17,24 @@
 	const scrollThreshold = 120;
 
 	onMount(() => {
-		ScrollSmoother.create({
-			wrapper: '#smooth-wrapper',
-			content: '#smooth-content',
-			smooth: 1,
-			effects: true,
-			smoothTouch: 0.1
+		// Defer creation so DOM/layout are ready and avoid ScrollTrigger "reading 'end' of undefined"
+		// (e.g. when restoring scroll position or during hydration)
+		const createSmoother = () => {
+			window.scrollTo(0, 0);
+			try {
+				ScrollSmoother.create({
+					wrapper: '#smooth-wrapper',
+					content: '#smooth-content',
+					smooth: 1,
+					effects: true,
+					smoothTouch: 0.1
+				});
+			} catch (_) {
+				// If create fails (e.g. ScrollTrigger not ready), page still works without smooth scroll
+			}
+		};
+		requestAnimationFrame(() => {
+			requestAnimationFrame(createSmoother);
 		});
 
 		const handleScroll = () => {
@@ -44,8 +56,17 @@
 
 	$effect(() => {
 		const path = $page.url.pathname;
-		// Refresh scroll length when route/content changes
-		setTimeout(() => ScrollTrigger.refresh(), 100);
+		// Refresh scroll length when route/content changes (only when DOM and ScrollSmoother are ready)
+		const t = setTimeout(() => {
+			if (typeof window === 'undefined') return;
+			const wrapper = document.getElementById('smooth-wrapper');
+			if (!wrapper) return;
+			try {
+				ScrollTrigger.refresh();
+			} catch (_) {
+				// Guard: avoid "reading 'end' of undefined" when refresh runs before triggers are ready
+			}
+		}, 100);
 
 		if (path.startsWith('/journey')) {
 			setInstrumentFocus('piano');
@@ -68,6 +89,8 @@
 		} else {
 			setInstrumentFocus('room');
 		}
+
+		return () => clearTimeout(t);
 	});
 </script>
 
