@@ -10,7 +10,7 @@
 	$effect(() => {
 		const path = $page.url.pathname;
 
-		if (path.startsWith('/personal-manager')) {
+		if (path.startsWith('/journey')) {
 			setInstrumentFocus('piano');
 		} else if (path.startsWith('/news')) {
 			setInstrumentFocus('violin');
@@ -49,7 +49,7 @@
 			</a>
 
 			<nav class="main-nav" aria-label="Main navigation">
-				<a href="/personal-manager">Personal Manager</a>
+				<a href="/journey">Journey</a>
 				<a href="/news">News</a>
 				<a href="/works">Works</a>
 				<a href="/photo-gallery">Photo Gallery</a>
@@ -74,6 +74,25 @@
 		background: radial-gradient(circle at top, #2b2117 0, #050405 55%, #000000 100%);
 		color: #f5ede0;
 		overflow-x: hidden;
+		scrollbar-width: thin;
+		scrollbar-color: #f58a3c #2b2117;
+	}
+
+	:global(::-webkit-scrollbar) {
+		width: 10px;
+		height: 10px;
+	}
+
+	:global(::-webkit-scrollbar-track) {
+		background: #2b2117;
+	}
+
+	:global(::-webkit-scrollbar-thumb) {
+		background: #f58a3c;
+	}
+
+	:global(::-webkit-scrollbar-corner) {
+		background: #2b2117;
 	}
 
 	.app-root {
@@ -84,14 +103,16 @@
 	}
 
 	.overlay {
-		position: fixed;
-		inset: 0;
+		position: relative;
+		min-height: 100vh;
 		pointer-events: none;
-		display: flex;
-		flex-direction: column;
 	}
 
 	.top-bar {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -147,7 +168,6 @@
 	}
 
 	.page-shell {
-		flex: 1;
 		display: flex;
 		align-items: flex-start;
 		justify-content: center;
