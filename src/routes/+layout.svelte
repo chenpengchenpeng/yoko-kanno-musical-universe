@@ -1,10 +1,15 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import gsap from 'gsap';
+	import { ScrollTrigger } from 'gsap/ScrollTrigger';
+	import { ScrollSmoother } from 'gsap/ScrollSmoother';
 	import favicon from '$lib/assets/favicon.svg';
 	import MusicRoom from '$lib/components/MusicRoom.svelte';
 	import LogoYokoKanno from '$lib/components/LogoYokoKanno.svelte';
 	import { page } from '$app/stores';
 	import { setInstrumentFocus } from '$lib/stores/instrumentFocus';
+
+	gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
 
 	let { children } = $props();
 	let headerHidden = $state(false);
@@ -12,6 +17,14 @@
 	const scrollThreshold = 120;
 
 	onMount(() => {
+		ScrollSmoother.create({
+			wrapper: '#smooth-wrapper',
+			content: '#smooth-content',
+			smooth: 1,
+			effects: true,
+			smoothTouch: 0.1
+		});
+
 		const handleScroll = () => {
 			const y = window.scrollY;
 			if (y > lastScrollY && y > scrollThreshold) {
@@ -22,11 +35,17 @@
 			lastScrollY = y;
 		};
 		window.addEventListener('scroll', handleScroll, { passive: true });
-		return () => window.removeEventListener('scroll', handleScroll);
+		return () => {
+			window.removeEventListener('scroll', handleScroll);
+			const smoother = ScrollSmoother.get();
+			if (smoother) smoother.kill();
+		};
 	});
 
 	$effect(() => {
 		const path = $page.url.pathname;
+		// Refresh scroll length when route/content changes
+		setTimeout(() => ScrollTrigger.refresh(), 100);
 
 		if (path.startsWith('/journey')) {
 			setInstrumentFocus('piano');
@@ -79,9 +98,13 @@
 			</nav>
 		</header>
 
-		<main class="page-shell">
-			{@render children()}
-		</main>
+		<div id="smooth-wrapper" class="smooth-wrapper">
+			<div id="smooth-content" class="smooth-content">
+				<main class="page-shell">
+					{@render children()}
+				</main>
+			</div>
+		</div>
 	</div>
 </div>
 
@@ -124,6 +147,14 @@
 		position: relative;
 		min-height: 100vh;
 		pointer-events: none;
+	}
+
+	.smooth-wrapper {
+		position: relative;
+	}
+
+	.smooth-content {
+		position: relative;
 	}
 
 	.top-bar {
