@@ -1,7 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { fadeInOnScroll } from '$lib/animations/scroll';
+	import gsap from 'gsap';
+	import { ScrollTrigger } from 'gsap/ScrollTrigger';
+	import { SplitText } from 'gsap/SplitText';
+	import { fadeInOnScroll, createFadeInScrollTimeline } from '$lib/animations/scroll';
 	import { setInstrumentFocus } from '$lib/stores/instrumentFocus';
+
+	gsap.registerPlugin(ScrollTrigger, SplitText);
 
 	let rootEl: HTMLElement | null = null;
 
@@ -20,9 +25,9 @@
 		},
 		{
 			year: '1987',
-			title: 'Nobunaga\'s Ambition & Tetsu 100%',
+			title: "Nobunaga's Ambition & Tetsu 100%",
 			description:
-				'While still at university, game company Koei asked her to compose the soundtrack for Nobunaga\'s Ambition—it became a hit and launched her career in games. The same year she joined the band Tetsu 100%, balancing game work with live performance.'
+				"While still at university, game company Koei asked her to compose the soundtrack for Nobunaga's Ambition—it became a hit and launched her career in games. The same year she joined the band Tetsu 100%, balancing game work with live performance."
 		},
 		{
 			year: '1994',
@@ -43,44 +48,118 @@
 				'Scored the iconic Cowboy Bebop and formed the band Seatbelts as keyboardist and frontwoman. The jazz, blues, and genre-hopping soundtrack defined the series and is celebrated worldwide.'
 		},
 		{
-			year: '2002–2004',
-			title: 'Ghost in the Shell & Wolf\'s Rain',
+			year: '1999–2000',
+			title: 'Turn A Gundam',
 			description:
-				'Composed for Ghost in the Shell: Stand Alone Complex and Wolf\'s Rain, further cementing her reputation as the international face of anime music—orchestral, electronic, and vocal work across multiple genres.'
+				'Composed the full soundtrack for Turn A Gundam, including multiple OST albums and the Turn A The Concert release. The score blended orchestral and electronic elements with the series\' distinctive tone.'
 		},
 		{
-			year: '2000s onward',
-			title: 'Film, games & collaborations',
+			year: '2001',
+			title: 'Cowboy Bebop: Knockin\' on Heaven\'s Door',
 			description:
-				'Continued scoring anime, film, TV, and games; collaborated with composer Hajime Mizoguchi on several soundtracks. Her style spans jazz, classical, orchestral, electronic, and countless fusions, with no single genre defining her.'
+				'Returned to the Bebop universe with the score for the feature film Cowboy Bebop: The Movie (Knockin\' on Heaven\'s Door), reuniting with Seatbelts and expanding the jazz-noir sound for the big screen.'
+		},
+		{
+			year: '2002–2004',
+			title: "Ghost in the Shell & Wolf's Rain",
+			description:
+				"Composed for Ghost in the Shell: Stand Alone Complex and Wolf's Rain, further cementing her reputation as the international face of anime music—orchestral, electronic, and vocal work across multiple genres."
+		},
+		{
+			year: '2006–2007',
+			title: 'Darker than Black',
+			description:
+				'Scored Darker than Black and its sequel, bringing a moody, atmospheric sound to the supernatural action series. The music blended electronic, rock, and orchestral layers.'
+		},
+		{
+			year: '2012',
+			title: 'Kids on the Slope',
+			description:
+				'Composed the score for the jazz-themed anime Kids on the Slope (Sakamichi no Apollon), set in 1960s Japan. The soundtrack centered on piano and jazz ensemble, reflecting the story of young musicians.'
+		},
+		{
+			year: '2014',
+			title: 'Space Dandy',
+			description:
+				'Provided music for Space Dandy, another collaboration with director Shinichirō Watanabe. The score ranged from funk and disco to orchestral and electronic, matching the show\'s irreverent, cosmic tone.'
+		},
+		{
+			year: '2010s onward',
+			title: 'Film, games & live work',
+			description:
+				'Continued scoring anime, film, TV, and games; collaborated with composer Hajime Mizoguchi on several soundtracks. Her style spans jazz, classical, orchestral, electronic, and countless fusions, with no single genre defining her. Seatbelts and related projects continue to perform live.'
 		}
 	];
 
 	onMount(() => {
 		setInstrumentFocus('piano');
 		fadeInOnScroll(rootEl);
+
+		const timelines: gsap.core.Timeline[] = [];
+		const splitInstances: SplitText[] = [];
+
+		// Cards: one timeline per card = fadeIn (scroll.ts) + SplitText on same ScrollTrigger
+		const cards = rootEl?.querySelectorAll<HTMLElement>('.timeline-card');
+		cards?.forEach((card) => {
+			const titleEl = card.querySelector<HTMLElement>('.card-title');
+			const descEl = card.querySelector<HTMLElement>('.card-desc');
+			if (!titleEl || !descEl) return;
+
+			const splitTitle = SplitText.create(titleEl, { type: 'chars' });
+			const splitDesc = SplitText.create(descEl, { type: 'words' });
+			splitInstances.push(splitTitle, splitDesc);
+
+			gsap.set([...splitTitle.chars, ...splitDesc.words], { opacity: 0, y: 8 });
+
+			const tl = createFadeInScrollTimeline(card);
+			timelines.push(tl);
+			tl.to(splitTitle.chars, {
+				opacity: 1,
+				y: 0,
+				duration: 0.4,
+				stagger: 0.02,
+				ease: 'power2.out'
+			}).to(
+				splitDesc.words,
+				{
+					opacity: 1,
+					y: 0,
+					duration: 0.35,
+					stagger: 0.015,
+					ease: 'power2.out'
+				},
+				'<0.2'
+			);
+			// '<' = 相对上一段开始; '<0.2' = title 开始后 0.2s 就开 desc（有重叠）
+		});
+
+		const refreshTimeout = setTimeout(() => ScrollTrigger.refresh(), 150);
+
+		return () => {
+			clearTimeout(refreshTimeout);
+			timelines.forEach((t) => t.kill());
+			splitInstances.forEach((s) => s.revert());
+			ScrollTrigger.getAll().forEach((st) => {
+				if (rootEl && st.trigger && rootEl.contains(st.trigger as Node)) st.kill();
+			});
+		};
 	});
 </script>
 
 <section class="page" bind:this={rootEl}>
 	<header class="heading" data-animate="fade-in-up">
 		<p class="eyebrow">Journey</p>
-		<h1>Your bridge to Yoko&apos;s studio.</h1>
-		<p class="intro">
-			For concert bookings, scoring enquiries, and creative collaborations, please reach out through
-			the official management channels below.
-		</p>
+		<h1>A life in sound</h1>
 	</header>
 
 	<div class="bio-section" data-animate="fade-in-up">
-		<h2 class="bio-title">A life in sound</h2>
 		<p class="bio-intro">
 			Composer, arranger, and sound architect—from Sendai to Waseda, from games to anime to film.
 			Here are some milestones along the way.
 		</p>
 		<div class="timeline">
 			{#each timeline as card}
-				<article class="timeline-card" data-animate="fade-in-up">
+				<article class="timeline-card">
 					<span class="card-year">{card.year}</span>
 					<div class="card-body">
 						<h3 class="card-title">{card.title}</h3>
@@ -90,52 +169,20 @@
 			{/each}
 		</div>
 	</div>
-
-	<div class="columns">
-		<div class="panel" data-animate="fade-in-up">
-			<h2>Representation</h2>
-			<ul>
-				<li>
-					<span class="label">Live performances</span>
-					<span class="value">Tour &amp; festival coordination</span>
-				</li>
-				<li>
-					<span class="label">Scoring &amp; commissions</span>
-					<span class="value">Anime, film, TV, game, and installation projects</span>
-				</li>
-				<li>
-					<span class="label">Brand collaborations</span>
-					<span class="value">Curated partnerships and special appearances</span>
-				</li>
-			</ul>
-		</div>
-
-		<div class="panel emphasis" data-animate="fade-in-up">
-			<h2>Send a proposal</h2>
-			<p>Share project details, timelines, and musical references to open a conversation.</p>
-			<a class="cta" href="/contact">Open contact form</a>
-		</div>
-	</div>
 </section>
 
 <style>
 	.page {
-		max-width: 960px;
 		width: 100%;
 		display: flex;
 		flex-direction: column;
 		gap: 2.4rem;
+		padding-bottom: 5vh;
 	}
 
 	.heading h1 {
-		margin: 0.5rem 0 0.9rem;
+		margin: 0.5rem 0 0;
 		font-size: clamp(1.9rem, 2.2vw + 1rem, 2.6rem);
-	}
-
-	.heading .intro {
-		max-width: 36rem;
-		color: rgba(245, 237, 224, 0.8);
-		line-height: 1.7;
 	}
 
 	.eyebrow {
@@ -149,12 +196,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1.5rem;
-	}
-
-	.bio-title {
-		margin: 0;
-		font-size: clamp(1.35rem, 1.5vw + 0.8rem, 1.65rem);
-		color: rgba(245, 237, 224, 0.95);
 	}
 
 	.bio-intro {
@@ -176,8 +217,8 @@
 	}
 
 	.timeline-card {
-		display: grid;
-		grid-template-columns: 5.5rem minmax(0, 1fr);
+		display: flex;
+		flex-direction: column;
 		gap: 1.2rem;
 		align-items: start;
 		padding: 1.25rem 1.4rem;
@@ -229,78 +270,6 @@
 
 		.card-year {
 			font-size: 0.75rem;
-		}
-	}
-
-	.columns {
-		display: grid;
-		grid-template-columns: minmax(0, 1.7fr) minmax(0, 1.1fr);
-		gap: 1.8rem;
-	}
-
-	.panel {
-		padding: 1.4rem 1.6rem;
-		border-radius: 1.1rem;
-		background: radial-gradient(circle at top, rgba(245, 193, 119, 0.16), rgba(9, 6, 5, 0.92));
-		border: 1px solid rgba(245, 237, 224, 0.09);
-		box-shadow: 0 18px 40px rgba(0, 0, 0, 0.78);
-	}
-
-	.panel h2 {
-		margin: 0 0 0.9rem;
-		font-size: 1.1rem;
-	}
-
-	.panel ul {
-		list-style: none;
-		padding: 0;
-		margin: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 0.85rem;
-	}
-
-	.label {
-		display: block;
-		font-size: 0.8rem;
-		text-transform: uppercase;
-		letter-spacing: 0.18em;
-		color: rgba(245, 237, 224, 0.65);
-		margin-bottom: 0.18rem;
-	}
-
-	.value {
-		font-size: 0.95rem;
-		color: rgba(245, 237, 224, 0.9);
-	}
-
-	.panel.emphasis {
-		display: flex;
-		flex-direction: column;
-		justify-content: space-between;
-		background: radial-gradient(circle at top left, rgba(245, 193, 119, 0.26), rgba(9, 6, 5, 0.96));
-	}
-
-	.panel.emphasis p {
-		margin: 0 0 1.2rem;
-		color: rgba(245, 237, 224, 0.86);
-	}
-
-	.cta {
-		align-self: flex-start;
-		padding: 0.7rem 1.4rem;
-		border-radius: 999px;
-		text-decoration: none;
-		text-transform: uppercase;
-		letter-spacing: 0.18em;
-		font-size: 0.85rem;
-		background: radial-gradient(circle at top left, #f5d7a2, #f58a3c);
-		color: #1a100a;
-	}
-
-	@media (max-width: 900px) {
-		.columns {
-			grid-template-columns: minmax(0, 1fr);
 		}
 	}
 </style>
