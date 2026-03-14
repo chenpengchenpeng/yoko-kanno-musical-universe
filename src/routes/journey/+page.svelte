@@ -18,7 +18,7 @@
 				'Yoko Kanno was born on March 18 in Sendai, Miyagi Prefecture, Japan. She began musical training early—keyboard and piano at home, organ at kindergarten. Her parents initially allowed only classical music at home.'
 		},
 		{
-			year: '1980s',
+			year: '1980',
 			title: 'Waseda & first compositions',
 			description:
 				'She attended Waseda University, majoring in literature, while transcribing music for student groups. A drummer friend introduced her to rhythm and popular music, sparking a lifelong fusion of classical and contemporary styles. Active as composer, arranger, and producer from 1985.'
@@ -66,10 +66,22 @@
 				"Composed for Ghost in the Shell: Stand Alone Complex and Wolf's Rain, further cementing her reputation as the international face of anime music—orchestral, electronic, and vocal work across multiple genres."
 		},
 		{
+			year: '2004',
+			title: 'Kamikaze Girls',
+			description:
+				'Composed the soundtrack for the hit film Kamikaze Girls (Shimotsuma Monogatari), directed by Tetsuya Nakashima. The score blended 1960s–70s American punk influences with instrumental and vocal pieces that matched the film\'s distinctive style.'
+		},
+		{
 			year: '2006–2007',
 			title: 'Darker than Black',
 			description:
-				'Scored Darker than Black and its sequel, bringing a moody, atmospheric sound to the supernatural action series. The music blended electronic, rock, and orchestral layers.'
+				'Composed the score for the first season, Darker than Black (Kuro no Keiyakusha), bringing a moody, atmospheric sound to the supernatural action series. The sequel Gemini of the Meteor (2009) was scored by Yasushi Ishii.'
+		},
+		{
+			year: '2009',
+			title: 'Seatbelts first arena concert',
+			description:
+				'Led Seatbelts in their first large-scale live show, “Chō Jiku Tanabata Sonic” (Super Dimensional Tanabata Sonic), at Saitama Super Arena on 7 July. Over 150 performers took part, including May\'n, Maaya Sakamoto, ORIGA, and the Warsaw National Philharmonic, blending Bebop-era repertoire with Macross F and other works.'
 		},
 		{
 			year: '2012',
@@ -79,12 +91,18 @@
 		},
 		{
 			year: '2014',
-			title: 'Space Dandy',
+			title: 'Terror in Resonance',
 			description:
-				'Provided music for Space Dandy, another collaboration with director Shinichirō Watanabe. The score ranged from funk and disco to orchestral and electronic, matching the show\'s irreverent, cosmic tone.'
+				'Composed the score for Watanabe\'s Terror in Resonance (Zankyou no Terror). The soundtrack was recorded in Iceland and drew on its landscape and atmosphere; she also wrote and arranged the opening “Trigger” (Galileo Galilei) and the ending “Dareka, Umi wo.” (Aimer).'
 		},
 		{
-			year: '2010s onward',
+			year: '2014',
+			title: 'Space Dandy',
+			description:
+				'One of the contributors to Space Dandy (directed by Shinichirō Watanabe), which used a rotating “Space Dandy Band” of musicians per episode. She arranged the ending theme “X-Jigen e Youkoso” and contributed to the collaborative score alongside artists such as Taku Takahashi and KenKen.'
+		},
+		{
+			year: '2015 onward',
 			title: 'Film, games & live work',
 			description:
 				'Continued scoring anime, film, TV, and games; collaborated with composer Hajime Mizoguchi on several soundtracks. Her style spans jazz, classical, orchestral, electronic, and countless fusions, with no single genre defining her. Seatbelts and related projects continue to perform live.'
