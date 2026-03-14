@@ -2,6 +2,8 @@
 	import { onDestroy, onMount } from 'svelte';
 	import * as THREE from 'three';
 	import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+	import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+	import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 	import gsap from 'gsap';
 	import { instrumentFocus, type InstrumentKey } from '$lib/stores/instrumentFocus';
 
@@ -13,10 +15,18 @@
 	let controls: OrbitControls | null = null;
 	let frameId: number | null = null;
 
-	const lookAtTarget = new THREE.Vector3(0, 1.2, 0);
+	const lookAtTargets: Record<InstrumentKey, THREE.Vector3> = {
+		room: new THREE.Vector3(0, 0, -0.4),
+		piano: new THREE.Vector3(-3.2, 0.8, 0),
+		violin: new THREE.Vector3(1.6, 1.35, -0.3),
+		drums: new THREE.Vector3(2.8, 1.2, -1.0),
+		saxophone: new THREE.Vector3(-1.4, 1.5, -1.8),
+		guitar: new THREE.Vector3(0.5, 1.2, 0.9)
+	};
+	const lookAtTarget = new THREE.Vector3().copy(lookAtTargets.room);
 
 	const cameraPositions: Record<InstrumentKey, THREE.Vector3> = {
-		room: new THREE.Vector3(0, 2.0, 6.5),
+		room: new THREE.Vector3(0, 3.2, 8.2),
 		piano: new THREE.Vector3(-2.7, 1.4, 4.3),
 		violin: new THREE.Vector3(1.4, 1.8, 4.6),
 		drums: new THREE.Vector3(2.6, 2.3, 5.8),
@@ -78,37 +88,27 @@
 
 		const instruments = new THREE.Group();
 
-		// Piano – simple grand silhouette
-		const pianoBody = new THREE.Mesh(
-			new THREE.BoxGeometry(2.2, 0.5, 1.1),
-			new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.6, roughness: 0.35 })
+		// Piano – load from GLB
+		const pianoUrl = '/models/piano.glb';
+		const gltfLoader = new GLTFLoader();
+		gltfLoader.setMeshoptDecoder(MeshoptDecoder)
+		gltfLoader.load(
+			pianoUrl,
+			(gltf) => {
+				const piano = gltf.scene;
+				piano.position.set(-3.2, 0.3, 0.0);
+				piano.scale.setScalar(0.01);
+				piano.traverse((child) => {
+					if ((child as THREE.Mesh).isMesh) {
+						(child as THREE.Mesh).castShadow = true;
+						(child as THREE.Mesh).receiveShadow = true;
+					}
+				});
+				instruments.add(piano);
+			},
+			undefined,
+			(err) => console.error('Failed to load piano model:', err)
 		);
-		pianoBody.position.set(-3.2, 0.7, 0.0);
-		pianoBody.castShadow = true;
-		pianoBody.receiveShadow = true;
-
-		const pianoLid = new THREE.Mesh(
-			new THREE.BoxGeometry(2.2, 0.1, 1.1),
-			new THREE.MeshStandardMaterial({ color: 0x1b1b1b, metalness: 0.7, roughness: 0.25 })
-		);
-		pianoLid.position.set(-3.2, 1.05, 0.0);
-		pianoLid.rotation.z = -0.12;
-		pianoLid.castShadow = true;
-
-		const pianoLegMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
-		for (const offset of [
-			[-2.3, 0.25, 0.45],
-			[-4.1, 0.25, 0.45],
-			[-2.3, 0.25, -0.45],
-			[-4.1, 0.25, -0.45]
-		]) {
-			const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.7, 10), pianoLegMat);
-			leg.position.set(offset[0] as number, offset[1] as number, offset[2] as number);
-			leg.castShadow = true;
-			instruments.add(leg);
-		}
-
-		instruments.add(pianoBody, pianoLid);
 
 		// Violin on stand
 		const violinBody = new THREE.Mesh(
@@ -210,6 +210,9 @@
 		const ambient = new THREE.AmbientLight(0xf5ede0, 0.35);
 		scene.add(ambient);
 
+		const ambientFill = new THREE.AmbientLight(0xe8e4dc, 0.08);
+		scene.add(ambientFill);
+
 		const warmSpot = new THREE.SpotLight(0xf5c493, 1.4, 18, Math.PI / 4.2, 0.35, 1.4);
 		warmSpot.position.set(-2.0, 6.2, 3.5);
 		warmSpot.target.position.set(-2.6, 1.0, -0.1);
@@ -243,15 +246,14 @@
 			ease: 'power3.inOut'
 		});
 
-		const desiredLook = new THREE.Vector3(
-			instrument === 'room' ? 0 : lookAtTarget.x,
-			instrument === 'drums' ? 1.4 : 1.2,
-			instrument === 'room' ? -0.4 : -0.2
-		);
+		const targetLook = lookAtTargets[instrument] ?? new THREE.Vector3(0, 1.2, -0.2);
+		const desiredLook = { x: targetLook.x, y: targetLook.y, z: targetLook.z };
 
 		const proxy = { x: lookAtTarget.x, y: lookAtTarget.y, z: lookAtTarget.z };
 		gsap.to(proxy, {
-			...desiredLook,
+			x: desiredLook.x,
+			y: desiredLook.y,
+			z: desiredLook.z,
 			duration: 1.6,
 			ease: 'power3.inOut',
 			onUpdate: () => {
