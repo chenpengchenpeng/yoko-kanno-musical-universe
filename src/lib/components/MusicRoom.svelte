@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { get } from 'svelte/store';
 	import { onDestroy, onMount } from 'svelte';
 	import * as THREE from 'three';
 	import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -240,6 +239,9 @@
 		const targetPos = cameraPositions[instrument];
 		if (!targetPos) return;
 
+		const targetLook = lookAtTargets[instrument] ?? new THREE.Vector3(0, 1.2, -0.2);
+		const desiredLook = { x: targetLook.x, y: targetLook.y, z: targetLook.z };
+
 		gsap.to(camera.position, {
 			x: targetPos.x,
 			y: targetPos.y,
@@ -247,9 +249,6 @@
 			duration: 1.6,
 			ease: 'power3.inOut'
 		});
-
-		const targetLook = lookAtTargets[instrument] ?? new THREE.Vector3(0, 1.2, -0.2);
-		const desiredLook = { x: targetLook.x, y: targetLook.y, z: targetLook.z };
 
 		const proxy = { x: lookAtTarget.x, y: lookAtTarget.y, z: lookAtTarget.z };
 		gsap.to(proxy, {
@@ -271,10 +270,6 @@
 
 		const renderLoop = () => {
 			const delta = clock.getDelta();
-
-			if (scene && get(instrumentFocus) === 'room') {
-				scene.rotation.y += delta * 0.0025;
-			}
 
 			if (controls) {
 				controls.target.copy(lookAtTarget);
