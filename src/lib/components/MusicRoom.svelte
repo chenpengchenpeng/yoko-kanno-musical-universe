@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { get } from 'svelte/store';
 	import { onDestroy, onMount } from 'svelte';
 	import * as THREE from 'three';
 	import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -27,7 +28,7 @@
 
 	const cameraPositions: Record<InstrumentKey, THREE.Vector3> = {
 		room: new THREE.Vector3(0, 3.2, 8.2),
-		piano: new THREE.Vector3(-2.7, 1.4, 4.3),
+		piano: new THREE.Vector3(-5.2, 1.4, 0.2),
 		violin: new THREE.Vector3(1.4, 1.8, 4.6),
 		drums: new THREE.Vector3(2.6, 2.3, 5.8),
 		saxophone: new THREE.Vector3(-1.6, 2.1, 5.2),
@@ -97,6 +98,7 @@
 			(gltf) => {
 				const piano = gltf.scene;
 				piano.position.set(-3.2, 0.3, 0.0);
+				piano.rotation.y = -Math.PI / 2;
 				piano.scale.setScalar(0.01);
 				piano.traverse((child) => {
 					if ((child as THREE.Mesh).isMesh) {
@@ -270,10 +272,13 @@
 		const renderLoop = () => {
 			const delta = clock.getDelta();
 
-			if (scene) {
+			if (scene && get(instrumentFocus) === 'room') {
 				scene.rotation.y += delta * 0.0025;
 			}
 
+			if (controls) {
+				controls.target.copy(lookAtTarget);
+			}
 			if (camera && scene && renderer) {
 				camera.lookAt(lookAtTarget);
 				renderer.render(scene, camera);
@@ -385,7 +390,7 @@
 	});
 </script>
 
-<div class="music-room" bind:this={container} aria-hidden="true" />
+<div class="music-room" bind:this={container} aria-hidden="true" ></div>
 
 <style>
 	.music-room {
