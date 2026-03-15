@@ -6,7 +6,7 @@
 	let rootEl: HTMLElement | null = null;
 
 	onMount(() => {
-		setInstrumentFocus('violin');
+		setInstrumentFocus('cello');
 		fadeInOnScroll(rootEl);
 	});
 </script>

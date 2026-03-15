@@ -6,7 +6,8 @@ export type InstrumentKey =
 	| 'violin'
 	| 'drums'
 	| 'saxophone'
-	| 'guitar';
+	| 'guitar'
+	| 'cello';
 
 export const instrumentFocus = writable<InstrumentKey>('room');
 

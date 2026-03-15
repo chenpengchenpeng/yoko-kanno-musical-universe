@@ -21,7 +21,8 @@
 		violin: new THREE.Vector3(1.6, 1.35, -0.3),
 		drums: new THREE.Vector3(2.8, 1.2, -1.0),
 		saxophone: new THREE.Vector3(-1.4, 1.5, -1.8),
-		guitar: new THREE.Vector3(0.5, 1.2, 0.9)
+		guitar: new THREE.Vector3(0.5, 1.2, 0.9),
+		cello: new THREE.Vector3(1, 1.2, 1.2)
 	};
 	const lookAtTarget = new THREE.Vector3().copy(lookAtTargets.room);
 
@@ -31,7 +32,8 @@
 		violin: new THREE.Vector3(1.4, 1.8, 4.6),
 		drums: new THREE.Vector3(2.6, 2.3, 5.8),
 		saxophone: new THREE.Vector3(-1.6, 2.1, 5.2),
-		guitar: new THREE.Vector3(0.6, 1.7, 4.1)
+		guitar: new THREE.Vector3(0.6, 1.7, 4.1),
+		cello: new THREE.Vector3(1, 2, 4)
 	};
 
 	function createRoom() {
@@ -89,14 +91,13 @@
 		const instruments = new THREE.Group();
 
 		// Piano – load from GLB
-		const pianoUrl = '/models/piano.glb';
 		const gltfLoader = new GLTFLoader();
 		gltfLoader.setMeshoptDecoder(MeshoptDecoder)
 		gltfLoader.load(
-			pianoUrl,
+			'/models/piano.glb',
 			(gltf) => {
 				const piano = gltf.scene;
-				piano.position.set(-3.2, 0.3, 0.0);
+				piano.position.set(-3.2, 0.4, 0.0);
 				piano.rotation.y = -Math.PI / 2;
 				piano.scale.setScalar(0.01);
 				piano.traverse((child) => {
@@ -109,6 +110,25 @@
 			},
 			undefined,
 			(err) => console.error('Failed to load piano model:', err)
+		);
+
+		// Cello – load from GLB
+		gltfLoader.load(
+			'/models/cello.glb',
+			(gltf) => {
+				const cello = gltf.scene;
+				cello.position.set(2, 0.4, 1.2);
+				cello.scale.setScalar(1.5);
+				cello.traverse((child) => {
+					if ((child as THREE.Mesh).isMesh) {
+						(child as THREE.Mesh).castShadow = true;
+						(child as THREE.Mesh).receiveShadow = true;
+					}
+				});
+				instruments.add(cello);
+			},
+			undefined,
+			(err) => console.error('Failed to load cello model:', err)
 		);
 
 		// Violin on stand

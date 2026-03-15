@@ -71,7 +71,7 @@
 		if (path.startsWith('/journey')) {
 			setInstrumentFocus('piano');
 		} else if (path.startsWith('/news')) {
-			setInstrumentFocus('violin');
+			setInstrumentFocus('cello');
 		} else if (path.startsWith('/works')) {
 			setInstrumentFocus('guitar');
 		} else if (path.startsWith('/photo-gallery')) {
