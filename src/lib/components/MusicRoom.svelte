@@ -10,6 +10,7 @@
 	let container: HTMLDivElement | null = null;
 	let instrumentsGroup: THREE.Group | null = null;
 	let glbWorker: Worker | null = null;
+	let pageVisible = true;
 
 	let renderer: THREE.WebGLRenderer | null = null;
 	let scene: THREE.Scene | null = null;
@@ -100,36 +101,53 @@
 		const gltfLoader = new GLTFLoader();
 		gltfLoader.setMeshoptDecoder(MeshoptDecoder);
 
+		function doParse(
+			id: string,
+			buffer: ArrayBuffer,
+			onDone: (gltf: { scene: THREE.Group }) => void
+		) {
+			gltfLoader.parse(
+				buffer,
+				'',
+				onDone,
+				(err) => console.error(`Failed to parse ${id} model:`, err)
+			);
+		}
+
 		function onGlbFetched(id: string, buffer: ArrayBuffer | null, error?: string) {
 			if (!instrumentsGroup) return;
 			if (error || !buffer) {
 				console.error(`Failed to load ${id} model:`, error);
 				return;
 			}
-			gltfLoader.parse(
-				buffer,
-				'',
-				(gltf) => {
-					if (!instrumentsGroup) return;
-					const model = gltf.scene;
-					if (id === 'piano') {
-						model.position.set(-3.2, 0.4, 0.0);
-						model.rotation.y = -Math.PI / 2;
-						model.scale.setScalar(0.01);
-					} else if (id === 'cello') {
-						model.position.set(2, 0.4, 1.2);
-						model.scale.setScalar(1.5);
+			const addToScene = (gltf: { scene: THREE.Group }) => {
+				if (!instrumentsGroup) return;
+				const model = gltf.scene;
+				if (id === 'piano') {
+					model.position.set(-3.2, 0.4, 0.0);
+					model.rotation.y = -Math.PI / 2;
+					model.scale.setScalar(0.01);
+				} else if (id === 'cello') {
+					model.position.set(2, 0.4, 1.2);
+					model.scale.setScalar(1.5);
+				}
+				model.traverse((child) => {
+					if ((child as THREE.Mesh).isMesh) {
+						(child as THREE.Mesh).castShadow = true;
+						(child as THREE.Mesh).receiveShadow = true;
 					}
-					model.traverse((child) => {
-						if ((child as THREE.Mesh).isMesh) {
-							(child as THREE.Mesh).castShadow = true;
-							(child as THREE.Mesh).receiveShadow = true;
-						}
-					});
-					instrumentsGroup.add(model);
-				},
-				(err) => console.error(`Failed to parse ${id} model:`, err)
-			);
+				});
+				instrumentsGroup.add(model);
+			};
+			// 大模型放到 requestIdleCallback 里解析，避免阻塞主线程导致卡顿
+			if (id === 'cello' && typeof requestIdleCallback !== 'undefined') {
+				requestIdleCallback(
+					() => doParse(id, buffer, addToScene),
+					{ timeout: 2000 }
+				);
+			} else {
+				doParse(id, buffer, addToScene);
+			}
 		}
 
 		glbWorker.onmessage = (e: MessageEvent<{ id: string; buffer?: ArrayBuffer; error?: string }>) => {
@@ -246,6 +264,7 @@
 		warmSpot.position.set(-2.0, 6.2, 3.5);
 		warmSpot.target.position.set(-2.6, 1.0, -0.1);
 		warmSpot.castShadow = true;
+		warmSpot.shadow.mapSize.set(512, 512);
 		scene.add(warmSpot);
 		scene.add(warmSpot.target);
 
@@ -253,6 +272,7 @@
 		coolSpot.position.set(3.0, 6.5, 4.0);
 		coolSpot.target.position.set(2.0, 1.2, -1.0);
 		coolSpot.castShadow = true;
+		coolSpot.shadow.mapSize.set(512, 512);
 		scene.add(coolSpot);
 		scene.add(coolSpot.target);
 
@@ -291,8 +311,9 @@
 		const clock = new THREE.Clock();
 
 		const renderLoop = () => {
-			const delta = clock.getDelta();
-
+			frameId = requestAnimationFrame(renderLoop);
+			if (!pageVisible) return;
+			clock.getDelta();
 			if (controls) {
 				controls.target.copy(lookAtTarget);
 			}
@@ -300,8 +321,6 @@
 				camera.lookAt(lookAtTarget);
 				renderer.render(scene, camera);
 			}
-
-			frameId = requestAnimationFrame(renderLoop);
 		};
 
 		renderLoop();
@@ -358,14 +377,18 @@
 
 		if (typeof window !== 'undefined') {
 			window.addEventListener('resize', handleResize);
-		}
-
-		return () => {
-			unsubscribe();
-			if (typeof window !== 'undefined') {
+			pageVisible = !document.hidden;
+			const onVisibilityChange = () => {
+				pageVisible = !document.hidden;
+			};
+			document.addEventListener('visibilitychange', onVisibilityChange);
+			return () => {
+				unsubscribe();
 				window.removeEventListener('resize', handleResize);
-			}
-		};
+				document.removeEventListener('visibilitychange', onVisibilityChange);
+			};
+		}
+		return () => unsubscribe();
 	});
 
 	onDestroy(() => {

@@ -15,10 +15,7 @@
 	let headerHidden = $state(false);
 	let lastScrollY = 0;
 	const scrollThreshold = 120;
-
 	onMount(() => {
-		// Defer creation so DOM/layout are ready and avoid ScrollTrigger "reading 'end' of undefined"
-		// (e.g. when restoring scroll position or during hydration)
 		const createSmoother = () => {
 			window.scrollTo(0, 0);
 			try {
