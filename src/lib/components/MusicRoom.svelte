@@ -8,6 +8,8 @@
 	import { instrumentFocus, type InstrumentKey } from '$lib/stores/instrumentFocus';
 
 	let container: HTMLDivElement | null = null;
+	let instrumentsGroup: THREE.Group | null = null;
+	let glbWorker: Worker | null = null;
 
 	let renderer: THREE.WebGLRenderer | null = null;
 	let scene: THREE.Scene | null = null;
@@ -88,48 +90,54 @@
 	function createInstruments() {
 		if (!scene) return;
 
-		const instruments = new THREE.Group();
+		instrumentsGroup = new THREE.Group();
 
-		// Piano – load from GLB
+		// Load GLB in worker (fetch off main thread), parse on main thread
+		glbWorker = new Worker(
+			new URL('../workers/fetchGlb.worker.js', import.meta.url),
+			{ type: 'module' }
+		);
 		const gltfLoader = new GLTFLoader();
-		gltfLoader.setMeshoptDecoder(MeshoptDecoder)
-		gltfLoader.load(
-			'/models/piano.glb',
-			(gltf) => {
-				const piano = gltf.scene;
-				piano.position.set(-3.2, 0.4, 0.0);
-				piano.rotation.y = -Math.PI / 2;
-				piano.scale.setScalar(0.01);
-				piano.traverse((child) => {
-					if ((child as THREE.Mesh).isMesh) {
-						(child as THREE.Mesh).castShadow = true;
-						(child as THREE.Mesh).receiveShadow = true;
-					}
-				});
-				instruments.add(piano);
-			},
-			undefined,
-			(err) => console.error('Failed to load piano model:', err)
-		);
+		gltfLoader.setMeshoptDecoder(MeshoptDecoder);
 
-		// Cello – load from GLB
-		gltfLoader.load(
-			'/models/cello.glb',
-			(gltf) => {
-				const cello = gltf.scene;
-				cello.position.set(2, 0.4, 1.2);
-				cello.scale.setScalar(1.5);
-				cello.traverse((child) => {
-					if ((child as THREE.Mesh).isMesh) {
-						(child as THREE.Mesh).castShadow = true;
-						(child as THREE.Mesh).receiveShadow = true;
+		function onGlbFetched(id: string, buffer: ArrayBuffer | null, error?: string) {
+			if (!instrumentsGroup) return;
+			if (error || !buffer) {
+				console.error(`Failed to load ${id} model:`, error);
+				return;
+			}
+			gltfLoader.parse(
+				buffer,
+				'',
+				(gltf) => {
+					if (!instrumentsGroup) return;
+					const model = gltf.scene;
+					if (id === 'piano') {
+						model.position.set(-3.2, 0.4, 0.0);
+						model.rotation.y = -Math.PI / 2;
+						model.scale.setScalar(0.01);
+					} else if (id === 'cello') {
+						model.position.set(2, 0.4, 1.2);
+						model.scale.setScalar(1.5);
 					}
-				});
-				instruments.add(cello);
-			},
-			undefined,
-			(err) => console.error('Failed to load cello model:', err)
-		);
+					model.traverse((child) => {
+						if ((child as THREE.Mesh).isMesh) {
+							(child as THREE.Mesh).castShadow = true;
+							(child as THREE.Mesh).receiveShadow = true;
+						}
+					});
+					instrumentsGroup.add(model);
+				},
+				(err) => console.error(`Failed to parse ${id} model:`, err)
+			);
+		}
+
+		glbWorker.onmessage = (e: MessageEvent<{ id: string; buffer?: ArrayBuffer; error?: string }>) => {
+			const { id, buffer, error } = e.data;
+			onGlbFetched(id, buffer ?? null, error);
+		};
+		glbWorker.postMessage({ id: 'piano', url: '/models/piano.glb' });
+		glbWorker.postMessage({ id: 'cello', url: '/models/cello.glb' });
 
 		// Violin on stand
 		const violinBody = new THREE.Mesh(
@@ -155,7 +163,7 @@
 		stand.position.set(1.6, 0.7, -0.3);
 		stand.castShadow = true;
 
-		instruments.add(violinBody, violinNeck, stand);
+		instrumentsGroup.add(violinBody, violinNeck, stand);
 
 		// Drum kit – kick, toms, cymbal
 		const drumMat = new THREE.MeshStandardMaterial({
@@ -190,7 +198,7 @@
 		cymbalStand.position.set(2.7, 0.95, -1.1);
 		cymbalStand.castShadow = true;
 
-		instruments.add(kick, floorTom, cymbal, cymbalStand);
+		instrumentsGroup.add(kick, floorTom, cymbal, cymbalStand);
 
 		// Saxophone – stylised golden curve
 		const saxBody = new THREE.Mesh(
@@ -201,7 +209,7 @@
 		saxBody.rotation.set(0.9, 0.2, 0.2);
 		saxBody.castShadow = true;
 
-		instruments.add(saxBody);
+		instrumentsGroup.add(saxBody);
 
 		// Guitar – body & neck
 		const guitarBody = new THREE.Mesh(
@@ -220,9 +228,9 @@
 		guitarNeck.rotation.z = -0.43;
 		guitarNeck.castShadow = true;
 
-		instruments.add(guitarBody, guitarNeck);
+		instrumentsGroup.add(guitarBody, guitarNeck);
 
-		scene.add(instruments);
+		scene.add(instrumentsGroup);
 	}
 
 	function setupLights() {
@@ -364,7 +372,10 @@
 		if (typeof window !== 'undefined') {
 			window.removeEventListener('resize', handleResize);
 		}
-
+		if (glbWorker) {
+			glbWorker.terminate();
+			glbWorker = null;
+		}
 		if (frameId !== null) {
 			cancelAnimationFrame(frameId);
 		}
