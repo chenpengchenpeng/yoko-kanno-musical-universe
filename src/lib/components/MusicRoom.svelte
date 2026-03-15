@@ -240,7 +240,6 @@
 		if (!targetPos) return;
 
 		const targetLook = lookAtTargets[instrument] ?? new THREE.Vector3(0, 1.2, -0.2);
-		const desiredLook = { x: targetLook.x, y: targetLook.y, z: targetLook.z };
 
 		gsap.to(camera.position, {
 			x: targetPos.x,
@@ -249,17 +248,12 @@
 			duration: 1.6,
 			ease: 'power3.inOut'
 		});
-
-		const proxy = { x: lookAtTarget.x, y: lookAtTarget.y, z: lookAtTarget.z };
-		gsap.to(proxy, {
-			x: desiredLook.x,
-			y: desiredLook.y,
-			z: desiredLook.z,
+		gsap.to(lookAtTarget, {
+			x: targetLook.x,
+			y: targetLook.y,
+			z: targetLook.z,
 			duration: 1.6,
-			ease: 'power3.inOut',
-			onUpdate: () => {
-				lookAtTarget.set(proxy.x, proxy.y, proxy.z);
-			}
+			ease: 'power3.inOut'
 		});
 	}
 
