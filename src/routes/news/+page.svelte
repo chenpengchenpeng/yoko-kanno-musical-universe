@@ -2,9 +2,10 @@
 	import { onMount } from 'svelte';
 	import gsap from 'gsap';
 	import { ScrollTrigger } from 'gsap/ScrollTrigger';
+	import { SplitText } from 'gsap/SplitText';
 	import { setInstrumentFocus } from '$lib/stores/instrumentFocus';
 
-	gsap.registerPlugin(ScrollTrigger);
+	gsap.registerPlugin(ScrollTrigger, SplitText);
 
 	const news: { meta: string; title: string; paragraphs: string[] }[] = [
 		{
@@ -89,27 +90,67 @@
 			}
 		);
 
-		// Cards: stagger fade-in-up with ScrollTrigger per card
+		// Cards: timeline per card = fade-in + SplitText (title chars, body words) on ScrollTrigger
 		const cards = gridEl.querySelectorAll<HTMLElement>('.card');
-		gsap.set(cards, { autoAlpha: 0, y: 48 });
+		const splitInstances: SplitText[] = [];
 
 		cards.forEach((card) => {
-			gsap.to(card, {
-				autoAlpha: 1,
-				y: 0,
-				duration: 0.85,
-				ease: 'power2.out',
+			const titleEl = card.querySelector<HTMLElement>('.card-title');
+			const bodyEl = card.querySelector<HTMLElement>('.card-body');
+			if (!titleEl) return;
+
+			const splitTitle = SplitText.create(titleEl, { type: 'chars' });
+			splitInstances.push(splitTitle);
+
+			let allWords: HTMLElement[] = [];
+			if (bodyEl) {
+				const paragraphs = bodyEl.querySelectorAll<HTMLElement>('p');
+				paragraphs.forEach((p) => {
+					const split = SplitText.create(p, { type: 'words' });
+					splitInstances.push(split);
+					allWords = allWords.concat(Array.from(split.words) as HTMLElement[]);
+				});
+			}
+
+			gsap.set([...splitTitle.chars, ...allWords], { opacity: 0, y: 10 });
+
+			const tl = gsap.timeline({
 				scrollTrigger: {
 					trigger: card,
 					start: 'top 92%',
 					toggleActions: 'play none none reverse'
 				}
 			});
+
+			tl.fromTo(
+				card,
+				{ autoAlpha: 0, y: 48 },
+				{ autoAlpha: 1, y: 0, duration: 0.6, ease: 'power2.out' }
+			)
+				.to(splitTitle.chars, {
+					opacity: 1,
+					y: 0,
+					duration: 0.4,
+					stagger: 0.02,
+					ease: 'power2.out'
+				})
+				.to(
+					allWords,
+					{
+						opacity: 1,
+						y: 0,
+						duration: 0.35,
+						stagger: 0.012,
+						ease: 'power2.out'
+					},
+					'<0.15'
+				);
 		});
 
 		const refreshTimeout = setTimeout(() => ScrollTrigger.refresh(), 200);
 		return () => {
 			clearTimeout(refreshTimeout);
+			splitInstances.forEach((s) => s.revert());
 			ScrollTrigger.getAll().forEach((st) => st.kill());
 		};
 	});
@@ -128,10 +169,12 @@
 		{#each news as item}
 			<article class="card">
 				<p class="meta">{item.meta}</p>
-				<h2>{item.title}</h2>
-				{#each item.paragraphs as paragraph}
-					<p>{paragraph}</p>
-				{/each}
+				<h2 class="card-title">{item.title}</h2>
+				<div class="card-body">
+					{#each item.paragraphs as paragraph}
+						<p>{paragraph}</p>
+					{/each}
+				</div>
 			</article>
 		{/each}
 	</div>
