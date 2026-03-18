@@ -69,12 +69,10 @@
 			setInstrumentFocus('piano');
 		} else if (path.startsWith('/news')) {
 			setInstrumentFocus('cello');
-		} else if (path.startsWith('/works')) {
-			setInstrumentFocus('guitar');
-		} else if (path.startsWith('/photo-gallery')) {
-			setInstrumentFocus('saxophone');
 		} else if (path.startsWith('/discography')) {
 			setInstrumentFocus('piano');
+		} else if (path.startsWith('/photo-gallery')) {
+			setInstrumentFocus('saxophone');
 		} else if (path.startsWith('/live')) {
 			setInstrumentFocus('drums');
 		} else if (path.startsWith('/collaborations')) {
@@ -108,9 +106,8 @@
 			<nav class="main-nav" aria-label="Main navigation">
 				<a href="/journey">Journey</a>
 				<a href="/news">News</a>
-				<a href="/works">Works</a>
-				<a href="/photo-gallery">Photo Gallery</a>
 				<a href="/discography">Discography</a>
+				<a href="/photo-gallery">Photo Gallery</a>
 				<a href="/live">Live Performances</a>
 				<a href="/collaborations">Collaborations</a>
 				<a href="/soundtracks">Soundtracks</a>
@@ -131,7 +128,12 @@
 <style>
 	:global(body) {
 		margin: 0;
-		font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+		font-family:
+			system-ui,
+			-apple-system,
+			BlinkMacSystemFont,
+			'Segoe UI',
+			sans-serif;
 		background: radial-gradient(circle at top, #2b2117 0, #050405 55%, #000000 100%);
 		color: #f5ede0;
 		overflow-x: hidden;
@@ -186,12 +188,7 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 0.6rem 2.5rem;
-		background: linear-gradient(
-			to bottom,
-			rgba(9, 6, 5, 0.65),
-			rgba(9, 6, 5, 0.5),
-			transparent
-		);
+		background: linear-gradient(to bottom, rgba(9, 6, 5, 0.65), rgba(9, 6, 5, 0.5), transparent);
 		border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 		pointer-events: auto;
 		z-index: 10;
