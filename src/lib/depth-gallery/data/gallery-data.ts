@@ -1,8 +1,8 @@
-import FLOWER01 from '$lib/assets/discography/placeholder.svg';
-import FLOWER02 from '$lib/assets/discography/placeholder.svg';
-import FLOWER03 from '$lib/assets/discography/placeholder.svg';
-import FLOWER04 from '$lib/assets/discography/placeholder.svg';
-import FLOWER05 from '$lib/assets/discography/placeholder.svg';
+import FLOWER01 from '$lib/assets/discography/flower-01.webp';
+import FLOWER02 from '$lib/assets/discography/flower-02.webp';
+import FLOWER03 from '$lib/assets/discography/flower-03.webp';
+import FLOWER04 from '$lib/assets/discography/flower-04.webp';
+import FLOWER05 from '$lib/assets/discography/flower-05.webp';
 
 export interface GalleryPlaneData {
 	fallbackColor: string;

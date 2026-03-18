@@ -88,6 +88,8 @@ export class Engine {
 			})
 		);
 
+		console.log(loadedTextures);
+
 		return loadedTextures;
 	}
 	private update() {
@@ -107,7 +109,7 @@ export class Engine {
 		// 3) clear depth and draw main scene
 		// 4) draw labels / overlays on top
 		this.renderer.clear(true, true, true);
-		// this.experience.background.render(this.renderer);
+		this.experience.background.render(this.renderer);
 		this.renderer.clearDepth();
 		this.renderer.render(this.scene, this.camera);
 		// this.experience.label.render();
