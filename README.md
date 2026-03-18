@@ -1,3 +1,24 @@
+# overview
+
+This is a project for a website for Yoko Kanno, a Japanese composer and musician.
+
+## features
+
+- responsive design
+- smooth scroll
+- animation
+- typography
+
+## technologies
+
+- Svelte
+- TypeScript
+- Vite
+- GSAP
+- Three.js
+- Prettier
+- ESLint
+
 # sv
 
 Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
