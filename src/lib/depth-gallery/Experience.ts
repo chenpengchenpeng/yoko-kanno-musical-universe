@@ -21,8 +21,8 @@ export class Experience {
     if (this.isInitialized) return
     await this.gallery.init(scene)
     // this.label.init()
-    // this.background.init()
-    // this.trailContriller.init(scene, camera)
+    this.background.init()
+    this.trailContriller.init(scene, camera)
     // const initialPlaneBlendData = this.gallery.getPlaneBlendData(camera.position.z)
     this.isInitialized = true
   }

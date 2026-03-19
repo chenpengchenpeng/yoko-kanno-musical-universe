@@ -33,11 +33,15 @@ export class Engine {
 		// WebGL renderer bound to the provided canvas
 		this.renderer = new THREE.WebGLRenderer({
 			canvas: this.canvas,
-			antialias: true
+			antialias: true,
+			alpha: true
 		});
 		this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 		this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 		this.renderer.autoClear = false;
+		// Transparent clear color so page background shows through
+		this.renderer.setClearColor(0x000000, 0);
+		this.scene.background = null;
 	}
 
 	public async init() {
