@@ -139,4 +139,18 @@ export class Trail {
 
 		return geometry;
 	}
+	dispose() {
+		this.reset();
+		this.material.dispose();
+	}
+
+	reset() {
+		if (this.mesh) {
+			this.mesh.geometry.dispose();
+			this.group.remove(this.mesh);
+			this.mesh = null;
+		}
+
+		this.points = [];
+	}
 }

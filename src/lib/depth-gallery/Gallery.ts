@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { galleryPlaneData, type GalleryPlaneData } from './data/gallery-data';
+import type { Scroll } from './Scroll';
 export class Gallery {
 	isInitialized = false;
 	isDisposed = false;
@@ -55,11 +56,10 @@ export class Gallery {
 	public init(scene: THREE.Scene) {
 		if (this.isInitialized) return;
 		this.setPlanes(scene);
-		// this.updatePlaneMaterialMode();
-		// this.updatePlaneScale();
-		// this.layoutPlanes();
-		// this.bindPointerEvents();
-		// this.bindDebug();
+		this.updatePlaneMaterialMode();
+		this.updatePlaneScale();
+		this.layoutPlanes();
+		this.bindPointerEvents();
 		this.isInitialized = true;
 	}
 
@@ -120,11 +120,270 @@ export class Gallery {
 		};
 	}
 
-	public getTextureSources() {
-		return [...new Set(this.planeConfig.map((plane) => plane.textureSrc).filter(Boolean))];
-	}
+	updatePlaneScale() {
+    const isMobileViewport = window.innerWidth <= this.mobileBreakpoint
+    const scale = isMobileViewport ? this.mobilePlaneScale : this.desktopPlaneScale
 
-	public setPreloadedTextures(texturesBySource: Map<string, THREE.Texture>) {
-		this.texturesBySource = texturesBySource instanceof Map ? texturesBySource : new Map<string, THREE.Texture>();
-	}
+    this.planes.forEach((plane) => {
+      const aspectRatio = plane.userData.aspectRatio || 1
+      plane.scale.set(scale * aspectRatio, scale, 1)
+    })
+  }
+
+  layoutPlanes() {
+    const xSpreadFactor = this.getXSpreadFactor()
+
+    this.planes.forEach((plane, index) => {
+      const basePosition = plane.userData.basePosition || { x: 0, y: 0 }
+      const xPosition = basePosition.x * xSpreadFactor
+      plane.position.set(xPosition, basePosition.y, -index * this.planeGap)
+    })
+  }
+
+  getXSpreadFactor() {
+    const isMobileViewport = window.innerWidth <= this.mobileBreakpoint
+    return isMobileViewport ? this.mobileXSpreadFactor : 1
+  }
+
+  getDepthRange() {
+    if (!this.planes.length) {
+      return { nearestZ: 0, deepestZ: 0 }
+    }
+
+    const zPositions = this.planes.map((plane) => plane.position.z)
+    return {
+      nearestZ: Math.max(...zPositions),
+      deepestZ: Math.min(...zPositions),
+    }
+  }
+
+  getDepthProgress(cameraZ: number) {
+    const { nearestZ, deepestZ } = this.getDepthRange()
+    const depthSpan = nearestZ - deepestZ
+    if (depthSpan <= 0) return 0
+
+    return THREE.MathUtils.clamp((nearestZ - cameraZ) / depthSpan, 0, 1)
+  }
+
+  getActivePlaneIndex(cameraZ: number) {
+    if (!this.planes.length) return -1
+
+    let closestPlaneIndex = 0
+    let smallestDistance = Infinity
+
+    this.planes.forEach((plane, index) => {
+      const distanceToPlane = Math.abs(cameraZ - plane.position.z)
+      if (distanceToPlane < smallestDistance) {
+        smallestDistance = distanceToPlane
+        closestPlaneIndex = index
+      }
+    })
+
+    return closestPlaneIndex
+  }
+
+  getMoodColorsByIndex(index: number) {
+    if (index < 0 || index >= this.planes.length) return null
+
+    const { backgroundColor, blob1Color, blob2Color } = this.planes[index].userData
+    if (!backgroundColor) return null
+
+    return { background: backgroundColor, blob1: blob1Color, blob2: blob2Color }
+  }
+
+  getMoodBlendData(cameraZ: number) {
+    if (!this.planes.length) return null
+
+    const safeCameraZ = Number.isFinite(cameraZ) ? cameraZ : this.planes[0].position.z
+    const moodSampleZ = safeCameraZ - this.planeGap * this.moodSampleOffset
+    const lastPlaneIndex = this.planes.length - 1
+
+    if (lastPlaneIndex === 0 || this.planeGap <= 0) {
+      const singleMood = this.getMoodColorsByIndex(0)
+      if (!singleMood) return null
+
+      return {
+        currentMood: singleMood,
+        nextMood: singleMood,
+        blend: 0,
+      }
+    }
+
+    const firstPlaneZ = this.planes[0].position.z
+    const normalizedDepth = THREE.MathUtils.clamp(
+      (firstPlaneZ - moodSampleZ) / this.planeGap,
+      0,
+      lastPlaneIndex
+    )
+    const currentPlaneIndex = Math.floor(normalizedDepth)
+    const nextPlaneIndex = Math.min(currentPlaneIndex + 1, lastPlaneIndex)
+    const blend = normalizedDepth - currentPlaneIndex
+
+    const currentMood = this.getMoodColorsByIndex(currentPlaneIndex)
+    const nextMood = this.getMoodColorsByIndex(nextPlaneIndex) || currentMood
+    if (!currentMood || !nextMood) return null
+
+    return {
+      currentMood,
+      nextMood,
+      blend,
+    }
+  }
+
+  getPlaneBlendData(cameraZ: number) {
+    if (!this.planes.length) return null
+
+    const planeGap = Math.max(this.planeGap, 0.0001)
+    const firstPlaneZ = this.planes[0].position.z
+    const lastPlaneIndex = this.planes.length - 1
+    const sampledCameraZ = cameraZ - planeGap * this.planeFadeSampleOffset
+    const normalizedDepth = THREE.MathUtils.clamp(
+      (firstPlaneZ - sampledCameraZ) / planeGap,
+      0,
+      lastPlaneIndex
+    )
+    const currentPlaneIndex = Math.floor(normalizedDepth)
+    const nextPlaneIndex = Math.min(currentPlaneIndex + 1, lastPlaneIndex)
+    const blend = normalizedDepth - currentPlaneIndex
+
+    return {
+      currentPlaneIndex,
+      nextPlaneIndex,
+      blend,
+    }
+  }
+
+  getActiveMoodColors(cameraZ: number) {
+    const moodBlendData = this.getMoodBlendData(cameraZ)
+    return moodBlendData?.currentMood || null
+  }
+
+  getTextureSources() {
+    const textureSources = this.planeConfig
+      .map((planeDefinition) => planeDefinition.textureSrc)
+      .filter(Boolean)
+
+    return [...new Set(textureSources)]
+  }
+
+  setPreloadedTextures(texturesBySource: Map<string, THREE.Texture>) {
+    this.texturesBySource = texturesBySource instanceof Map ? texturesBySource : new Map()
+  }
+
+  updatePlaneMaterialMode() {
+    this.planes.forEach((plane) => {
+      const planeMaterial = plane.material
+      const texture = plane.userData.texture || null
+      const hasTexture = Boolean(texture)
+
+      planeMaterial.map = this.useTextures && hasTexture ? texture : null
+      planeMaterial.color.set(this.useTextures && hasTexture ? '#ffffff' : plane.userData.baseColor)
+      planeMaterial.needsUpdate = true
+    })
+  }
+
+  updatePlaneVisibility(cameraZ: number) {
+    const blendData = this.getPlaneBlendData(cameraZ)
+    if (!blendData) return
+
+    const { currentPlaneIndex, nextPlaneIndex, blend } = blendData
+
+    this.planes.forEach((plane, index) => {
+      let targetOpacity = 0
+
+      if (index === currentPlaneIndex) {
+        targetOpacity = 1 - blend
+      }
+      if (index === nextPlaneIndex) {
+        targetOpacity = Math.max(targetOpacity, blend)
+      }
+
+      const currentOpacity = Number.isFinite(plane.material.opacity) ? plane.material.opacity : 0
+      plane.material.opacity = THREE.MathUtils.lerp(
+        currentOpacity,
+        targetOpacity,
+        this.planeFadeSmoothing
+      )
+      plane.material.needsUpdate = true
+    })
+  }
+bindPointerEvents() {
+    window.addEventListener('pointermove', this.onPointerMove, { passive: true })
+    window.addEventListener('pointerleave', this.onPointerLeave, { passive: true })
+  }
+
+  updatePlaneMotion(scroll: Scroll | null = null) {
+    // Smooth pointer toward target
+    this.pointerCurrent.lerp(this.pointerTarget, this.parallaxSmoothing)
+
+    // Velocity → breath + drift
+    const velocityMax = Math.max(scroll?.velocityMax || 1, 0.0001)
+    const velocityNormalized = THREE.MathUtils.clamp(
+      Math.abs(scroll?.velocity || 0) / velocityMax,
+      0,
+      1
+    )
+    const scrollDrift = THREE.MathUtils.clamp((scroll?.velocity || 0) / velocityMax, -1, 1)
+    this.targetBreathIntensity = this.breathEnabled
+      ? THREE.MathUtils.clamp(velocityNormalized * this.breathGain, 0, 1)
+      : 0
+    this.breathIntensity = THREE.MathUtils.lerp(
+      this.breathIntensity,
+      this.targetBreathIntensity,
+      this.breathSmoothing
+    )
+    this.driftTarget = this.gestureParallaxEnabled ? scrollDrift : 0
+    this.driftCurrent = THREE.MathUtils.lerp(
+      this.driftCurrent,
+      this.driftTarget,
+      this.gestureParallaxSmoothing
+    )
+
+    // Per-plane: position, rotation, scale
+    const xSpreadFactor = this.getXSpreadFactor()
+
+    this.planes.forEach((plane, index) => {
+      const basePosition = plane.userData.basePosition || { x: 0, y: 0 }
+      const xPosition = basePosition.x * xSpreadFactor
+      const yPosition = basePosition.y
+      const zPosition = -index * this.planeGap
+      const opacity = Number.isFinite(plane.material.opacity) ? plane.material.opacity : 0
+      const depthInfluence = 1 + index * 0.05
+      const parallaxInfluence = this.parallaxEnabled ? opacity * depthInfluence : 0
+
+      const parallaxOffsetX = this.pointerCurrent.x * this.parallaxAmountX * parallaxInfluence
+      const parallaxOffsetY = this.pointerCurrent.y * this.parallaxAmountY * parallaxInfluence
+      const gestureOffsetY = this.driftCurrent * this.gestureParallaxAmountY
+
+      plane.position.x = xPosition + parallaxOffsetX
+      plane.position.y = yPosition + parallaxOffsetY + gestureOffsetY
+      plane.position.z = zPosition
+
+      const breathInfluence = this.breathEnabled ? this.breathIntensity * opacity : 0
+      const tiltX = -this.pointerCurrent.y * this.breathTiltAmount * breathInfluence
+      const tiltY = this.pointerCurrent.x * this.breathTiltAmount * breathInfluence
+      plane.rotation.x = tiltX
+      plane.rotation.y = tiltY
+      plane.rotation.z = 0
+
+      const aspectRatio = plane.userData.aspectRatio || 1
+      const baseScale =
+        window.innerWidth <= this.mobileBreakpoint ? this.mobilePlaneScale : this.desktopPlaneScale
+      const scalePulse = 1 + this.breathScaleAmount * breathInfluence
+      plane.scale.x = baseScale * aspectRatio * scalePulse
+      plane.scale.y = baseScale * scalePulse
+      plane.scale.z = 1
+    })
+  }
+
+	update(camera: THREE.Camera | null, scroll: Scroll) {
+    if (!camera) return
+    this.updatePlaneVisibility(camera.position.z)
+    this.updatePlaneMotion(scroll)
+  }
+
+	dispose() {
+    window.removeEventListener('pointermove', this.onPointerMove)
+    window.removeEventListener('pointerleave', this.onPointerLeave)
+  }
 }
