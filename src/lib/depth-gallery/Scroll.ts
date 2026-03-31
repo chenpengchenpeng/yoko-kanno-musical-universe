@@ -17,11 +17,7 @@ export class Scroll {
 	showVelocityVisualizer: boolean;
 	debugUiVisible: boolean;
 	touchY: number;
-	velocityVisualizerElement: HTMLElement | null;
-	velocityVisualizerFillElement: HTMLElement | null;
-	velocityVisualizerValueElement: HTMLElement | null;
 	isInitialized: boolean;
-	isDebugBound: boolean;
 	previousScrollCurrent: number;
 	scrollTarget: number;
 	scrollCurrent: number;
@@ -36,7 +32,6 @@ export class Scroll {
 
 	constructor(camera: THREE.Camera, gallery: Gallery) {
 		this.isInitialized = false;
-		this.isDebugBound = false;
 		this.camera = camera;
 		this.gallery = gallery;
 
@@ -69,9 +64,6 @@ export class Scroll {
 		this.showVelocityVisualizer = true;
 		this.debugUiVisible = false;
 		this.touchY = 0;
-		this.velocityVisualizerElement = null;
-		this.velocityVisualizerFillElement = null;
-		this.velocityVisualizerValueElement = null;
 
 		// Input events
 		this.onWheel = (event: WheelEvent) => {
@@ -102,8 +94,6 @@ export class Scroll {
 		this.previousScrollCurrent = this.scrollCurrent;
 		this.rawVelocity = 0;
 		this.velocity = 0;
-		this.createVelocityVisualizer();
-		this.updateVelocityVisualizer();
 
 		this.isInitialized = true;
 	}
@@ -156,76 +146,10 @@ export class Scroll {
 		this.previousScrollCurrent = this.scrollCurrent;
 	}
 
-	createVelocityVisualizer() {
-		if (this.velocityVisualizerElement) return;
-
-		const container = document.createElement('div');
-		container.className = 'velocity-visualizer';
-
-		const label = document.createElement('p');
-		label.className = 'velocity-visualizer__label';
-		label.textContent = 'Velocity';
-
-		const value = document.createElement('p');
-		value.className = 'velocity-visualizer__value';
-		value.textContent = '0.0000';
-
-		const track = document.createElement('div');
-		track.className = 'velocity-visualizer__track';
-
-		const fill = document.createElement('div');
-		fill.className = 'velocity-visualizer__fill';
-		track.append(fill);
-
-		container.append(label, value, track);
-		document.body.append(container);
-
-		this.velocityVisualizerElement = container;
-		this.velocityVisualizerFillElement = fill;
-		this.velocityVisualizerValueElement = value;
-		this.setVelocityVisualizerVisible(this.showVelocityVisualizer);
-	}
-
-	setVelocityVisualizerVisible(isVisible: boolean) {
-		if (!this.velocityVisualizerElement) return;
-		const shouldShow = Boolean(isVisible) && this.debugUiVisible;
-		this.velocityVisualizerElement.style.display = shouldShow ? 'block' : 'none';
-	}
-
 	setDebugUiVisible(isVisible: boolean) {
 		this.debugUiVisible = Boolean(isVisible);
-		this.setVelocityVisualizerVisible(this.showVelocityVisualizer);
 	}
 
-	updateVelocityVisualizer() {
-		if (
-			!this.velocityVisualizerElement ||
-			!this.velocityVisualizerFillElement ||
-			!this.velocityVisualizerValueElement
-		) {
-			return;
-		}
-
-		const velocitySign = this.velocity === 0 ? 0 : Math.sign(this.velocity);
-		const normalizedVelocity = THREE.MathUtils.clamp(
-			Math.abs(this.velocity) / this.velocityMax,
-			0,
-			1
-		);
-		const fillPercent = normalizedVelocity * 50;
-
-		if (velocitySign >= 0) {
-			this.velocityVisualizerFillElement.style.left = '50%';
-			this.velocityVisualizerFillElement.style.width = `${fillPercent}%`;
-		} else {
-			this.velocityVisualizerFillElement.style.left = `${50 - fillPercent}%`;
-			this.velocityVisualizerFillElement.style.width = `${fillPercent}%`;
-		}
-
-		this.velocityVisualizerFillElement.style.backgroundColor =
-			velocitySign >= 0 ? '#7fffd4' : '#ff8fab';
-		this.velocityVisualizerValueElement.textContent = this.velocity.toFixed(4);
-	}
 
 	update() {
 		this.updateCameraBounds();
@@ -244,7 +168,6 @@ export class Scroll {
 		}
 
 		this.updateVelocity();
-		this.updateVelocityVisualizer();
 
 		const nextCameraZ = this.cameraZFromScroll(this.scrollCurrent);
 		if (this.useScrollBounds) {
@@ -259,11 +182,5 @@ export class Scroll {
 		window.removeEventListener('touchstart', this.onTouchStart);
 		window.removeEventListener('touchmove', this.onTouchMove);
 
-		if (this.velocityVisualizerElement) {
-			this.velocityVisualizerElement.remove();
-		}
-		this.velocityVisualizerElement = null;
-		this.velocityVisualizerFillElement = null;
-		this.velocityVisualizerValueElement = null;
 	}
 }
