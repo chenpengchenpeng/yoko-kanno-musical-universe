@@ -25,7 +25,7 @@ export class Engine {
 			throw new Error('Engine requires a valid canvas element');
 		}
 		this.canvas = canvas;
-		
+
 		this.camera.position.set(0, 0, 6);
 		// Scroll controller that drives camera + gallery based on page scroll
 		this.scroll = new Scroll(this.camera, this.experience.gallery);
@@ -53,13 +53,11 @@ export class Engine {
 
 			// Let the experience populate the scene graph
 			await this.experience.init(this.scene, this.camera);
-			// this.scroll.init();
+			this.scroll.init();
 
 			// Perform an initial layout and start listening to global events
 			this.resize();
 			window.addEventListener('resize', this.onResize);
-			// window.addEventListener('keydown', this.onKeyDown);
-			// this.scroll.bindEvents();
 
 			this.isInitialized = true;
 			this.start();
@@ -73,6 +71,7 @@ export class Engine {
 		this.isRunning = true;
 		this.update();
 	}
+
 	private async preloadTextures() {
 		const textureSources = this.experience.gallery.getTextureSources();
 		if (!textureSources.length) return new Map<string, THREE.Texture>();
@@ -92,8 +91,6 @@ export class Engine {
 			})
 		);
 
-		console.log(loadedTextures);
-
 		return loadedTextures;
 	}
 	private update() {
@@ -104,8 +101,8 @@ export class Engine {
 		const time = performance.now();
 
 		// Update scroll state first so experience can react to it
-		// this.scroll.update();
-		// this.experience.update(time, this.camera, this.scroll);
+		this.scroll.update();
+		this.experience.update(time, this.camera, this.scroll);
 
 		// Layered rendering:
 		// 1) clear everything
@@ -116,7 +113,6 @@ export class Engine {
 		this.experience.background.render(this.renderer);
 		this.renderer.clearDepth();
 		this.renderer.render(this.scene, this.camera);
-		// this.experience.label.render();
 	}
 
 	resize() {
@@ -128,8 +124,25 @@ export class Engine {
 		this.camera.updateProjectionMatrix();
 		this.renderer.setSize(width, height, false);
 		// Inform experience components that depend on viewport size
-		// this.experience.gallery.updatePlaneScale()
-		// this.experience.gallery.layoutPlanes()
-		// this.experience.label.resize(width, height)
+		this.experience.gallery.updatePlaneScale();
+		this.experience.gallery.layoutPlanes();
+	}
+
+	dispose() {
+		this.isRunning = false;
+
+		if (this.animationFrameRequestId !== null) {
+			cancelAnimationFrame(this.animationFrameRequestId);
+			this.animationFrameRequestId = null;
+		}
+
+		window.removeEventListener('resize', this.onResize);
+		this.scroll.dispose();
+
+		this.preloadedTextures.forEach((texture) => {
+			texture.dispose();
+		});
+		this.preloadedTextures.clear();
+		this.experience.dispose?.();
 	}
 }

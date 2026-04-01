@@ -19,7 +19,7 @@
 		});
 
 		return () => {
-			// Engine currently doesn't expose a dispose() API; stopping RAF requires adding one.
+			engine?.dispose();
 			engine = null;
 		};
 	});

@@ -95,6 +95,7 @@ export class Scroll {
 		this.rawVelocity = 0;
 		this.velocity = 0;
 
+		this.bindEvents();
 		this.isInitialized = true;
 	}
 
@@ -146,11 +147,6 @@ export class Scroll {
 		this.previousScrollCurrent = this.scrollCurrent;
 	}
 
-	setDebugUiVisible(isVisible: boolean) {
-		this.debugUiVisible = Boolean(isVisible);
-	}
-
-
 	update() {
 		this.updateCameraBounds();
 		this.scrollCurrent = THREE.MathUtils.lerp(
@@ -181,6 +177,5 @@ export class Scroll {
 		window.removeEventListener('wheel', this.onWheel);
 		window.removeEventListener('touchstart', this.onTouchStart);
 		window.removeEventListener('touchmove', this.onTouchMove);
-
 	}
 }
