@@ -1,5 +1,10 @@
 import * as THREE from 'three';
+import vertexShader from './shaders/vertex.glsl';
+import fragmentShader from './shaders/fragment.glsl';
 import { Size } from "./types/types"
+import normalizeWheel from 'normalize-wheel'
+import { get30NewReleaseCovers } from "./spotify"
+
 interface PlanesProps {
 	scene: THREE.Scene;
 	sizes: Size;
@@ -195,4 +200,13 @@ export class Planes {
     this.blurryAtlasTexture.needsUpdate = true
     this.material.uniforms.uBlurryAtlas.value = this.blurryAtlasTexture
   }
+
+  onWheel(event: MouseEvent) {
+    const normalizeWheel = normalizeWheel(event)
+    let scrollY = (normalizeWheel.pixelY * this.sizes.height) / window.innerHeight
+    this.scrollY.target += scrollY
+    this.material.uniforms.uSpeedY.value += scrollY
+  }
+
+  render(delta: nu)
 }
